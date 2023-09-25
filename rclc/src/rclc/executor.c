@@ -1104,20 +1104,39 @@ _rclc_take_new_data(rclc_executor_handle_t * handle, rcl_wait_set_t * wait_set)
     case RCLC_SUBSCRIPTION_WITH_CONTEXT:
       if (wait_set->subscriptions[handle->index]) {
         rmw_message_info_t messageInfo;
-        rc = rcl_take(
-          handle->subscription, handle->data, &messageInfo,
-          NULL);
-        if (rc != RCL_RET_OK) {
-          // rcl_take might return this error even with successfull rcl_wait
+        rcl_subscription_t* sub = handle->subscription;
+        if(rcl_subscription_can_loan_messages(sub)){
+          handle->data = NULL;
+          rc = rcl_take_loaned_message(sub, &handle->data, &messageInfo, NULL); // how to return it to rmw????
+          if (rc != RCL_RET_OK) {
+          // rcl_take_loaned_message might return this error even with successfull rcl_wait
           if (rc != RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
-            PRINT_RCLC_ERROR(rclc_take_new_data, rcl_take);
+            PRINT_RCLC_ERROR(rcl_take_loaned_message, rcl_take_loaned_message);
             RCUTILS_LOG_ERROR_NAMED(ROS_PACKAGE_NAME, "Error number: %d", rc);
           }
-          // invalidate that data is available, because rcl_take failed
+          // invalidate that data is available, because rcl_take_loaned_message failed
           if (rc == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
             handle->data_available = false;
           }
           return rc;
+          }
+        }
+        else {
+          rc = rcl_take(
+            handle->subscription, handle->data, &messageInfo,
+            NULL);
+          if (rc != RCL_RET_OK) {
+            // rcl_take might return this error even with successfull rcl_wait
+            if (rc != RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
+              PRINT_RCLC_ERROR(rclc_take_new_data, rcl_take);
+              RCUTILS_LOG_ERROR_NAMED(ROS_PACKAGE_NAME, "Error number: %d", rc);
+            }
+            // invalidate that data is available, because rcl_take failed
+            if (rc == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
+              handle->data_available = false;
+            }
+            return rc;
+          }
         }
       }
       break;
