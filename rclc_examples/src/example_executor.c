@@ -164,6 +164,7 @@ int main(int argc, const char * argv[])
   rclc_executor_spin(&executor);
 
   // clean up (never called in this example)
+  printf("Cleaning up...\n");
   rc = rclc_executor_fini(&executor);
   rc += rcl_publisher_fini(&my_pub, &my_node);
   rc += rcl_timer_fini(&my_timer);
