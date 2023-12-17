@@ -1436,7 +1436,7 @@ _rclc_execute(rclc_executor_handle_t * handle)
           handle->subscription_callback(NULL);
         }
         if(rcl_subscription_can_loan_messages(handle->subscription)){
-          rc = rcl_return_loaned_message(handle->subscription, handle->data);
+          rc = rcl_return_loaned_message_from_subscription(handle->subscription, handle->data);
           if (rc != RCL_RET_OK) {
             PRINT_RCLC_ERROR(rclc_execute, rcl_return_loaned_message);
             RCUTILS_LOG_ERROR_NAMED(ROS_PACKAGE_NAME, "Error number: %d", rc);
