@@ -56,6 +56,7 @@ void my_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 /******************** MAIN PROGRAM ****************************************/
 int main(int argc, const char * argv[])
 {
+  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rcl_allocator_t allocator = rcl_get_default_allocator();
   rclc_support_t support;
   rcl_ret_t rc;
