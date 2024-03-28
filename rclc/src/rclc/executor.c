@@ -1104,20 +1104,41 @@ _rclc_take_new_data(rclc_executor_handle_t * handle, rcl_wait_set_t * wait_set)
     case RCLC_SUBSCRIPTION_WITH_CONTEXT:
       if (wait_set->subscriptions[handle->index]) {
         rmw_message_info_t messageInfo;
-        rc = rcl_take(
-          handle->subscription, handle->data, &messageInfo,
-          NULL);
-        if (rc != RCL_RET_OK) {
-          // rcl_take might return this error even with successfull rcl_wait
-          if (rc != RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
-            PRINT_RCLC_ERROR(rclc_take_new_data, rcl_take);
-            RCUTILS_LOG_ERROR_NAMED(ROS_PACKAGE_NAME, "Error number: %d", rc);
-          }
-          // invalidate that data is available, because rcl_take failed
-          if (rc == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
-            handle->data_available = false;
+        rcl_subscription_t* sub = handle->subscription;
+        if(rcl_subscription_can_loan_messages(sub))
+        {
+          handle->data = NULL;
+          rc = rcl_take_loaned_message(sub, &handle->data, &messageInfo, NULL);
+          if(rc != RCL_RET_OK)
+          {
+            if(rc != RCL_RET_SUBSCRIPTION_TAKE_FAILED)
+            {
+              PRINT_RCLC_ERROR(rclc_take_new_data, rcl_take_loaned_message);
+              RCUTILS_LOG_ERROR_NAMED(ROS_PACKAGE_NAME, "Error number: %d", rc);
+            }
+            else 
+            {
+              handle->data_available = false;
+            }
           }
           return rc;
+        }
+        else {
+          rc = rcl_take(
+            handle->subscription, handle->data, &messageInfo,
+            NULL);
+          if (rc != RCL_RET_OK) {
+            // rcl_take might return this error even with successfull rcl_wait
+            if (rc != RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
+              PRINT_RCLC_ERROR(rclc_take_new_data, rcl_take);
+              RCUTILS_LOG_ERROR_NAMED(ROS_PACKAGE_NAME, "Error number: %d", rc);
+            }
+            // invalidate that data is available, because rcl_take failed
+            if (rc == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
+              handle->data_available = false;
+            }
+            return rc;
+          }
         }
       }
       break;
@@ -1423,6 +1444,15 @@ _rclc_execute(rclc_executor_handle_t * handle)
           handle->subscription_callback_with_context(
             handle->data,
             handle->callback_context);
+            if(rcl_subscription_can_loan_messages(handle->subscription))
+            {
+              rcl_ret_t ret = rcl_return_loaned_message_from_subscription(handle->subscription, handle->data);
+              if(ret != RCL_RET_OK)
+              {
+                PRINT_RCLC_ERROR(rclc_execute, rcl_return_loaned_message_from_subscription);
+                return ret;
+              }
+            }
         } else {
           handle->subscription_callback_with_context(
             NULL,

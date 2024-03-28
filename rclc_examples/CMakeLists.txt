@@ -67,6 +67,9 @@ ament_target_dependencies(example_action_client rcl rcl_action rclc example_inte
 add_executable(example_short_timer_long_subscription src/example_short_timer_long_subscription.c)
 ament_target_dependencies(example_short_timer_long_subscription rcl rclc std_msgs)
 
+add_executable(example_sub_context_loaned_msg src/example_sub_context_loaned_msg.c)
+ament_target_dependencies(example_sub_context_loaned_msg rcl rclc std_msgs)
+
 install(TARGETS
   example_executor
   example_executor_only_rcl
@@ -76,6 +79,7 @@ install(TARGETS
   example_client_node
   example_parameter_server
   example_sub_context
+  example_sub_context_loaned_msg
   example_pingpong
   example_action_server
   example_action_client
